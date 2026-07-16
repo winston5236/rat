@@ -1,203 +1,184 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taipei Rat & Bait Radar (見鼠地圖延伸版)</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-          crossorigin="" />
-          
+    <title>Dynamic Leaflet Map Layers</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html {
+        body {
             margin: 0;
             padding: 0;
-            height: 100%;
-            width: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f5f5f7;
-        }
-        
-        #map {
+            font-family: Arial, sans-serif;
+            display: flex;
             height: 100vh;
-            width: 100%;
-            z-index: 1;
         }
-
-        /* Modern UI Panel */
-        .info-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+        #sidebar {
+            width: 300px;
+            background: #f8f9fa;
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             z-index: 1000;
-            max-width: 320px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .info-panel h1 {
-            margin: 0 0 5px 0;
-            font-size: 18px;
-            color: #1d1d1f;
-            font-weight: 700;
-        }
-
-        .info-panel p.subtitle {
-            margin: 0 0 15px 0;
-            font-size: 12px;
-            color: #86868b;
-            line-height: 1.4;
-        }
-
-        .divider {
-            height: 1px;
-            background: #e5e5ea;
-            margin: 15px 0;
-        }
-
-        /* Dynamic Stats Counter Styling */
-        .stat-box {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 13px;
+            flex-direction: column;
+            gap: 15px;
         }
-
-        .stat-label {
-            color: #515154;
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+        .input-group {
             display: flex;
-            align-items: center;
-            gap: 6px;
+            flex-direction: column;
+            gap: 5px;
         }
-
-        .stat-value {
-            font-weight: bold;
-            color: #1d1d1f;
+        input, button {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
-
-        .badge-rat { color: #ff4d4f; }
-        .badge-bait { color: #3f3f46; }
-
-        .footer-note {
-            font-size: 10px;
-            color: #aeaeae;
-            margin-top: 15px;
-            line-height: 1.3;
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #ccc;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
-    <div class="info-panel">
-        <h1>Taipei Rat & Bait Tracker</h1>
-        <p class="subtitle">An interactive geographic visualization built on the community-sourced Ratdar data layer.</p>
+    <div id="sidebar">
+        <h3>Add Map Layers</h3>
         
-        <div class="divider"></div>
-        
-        <div class="stat-box">
-            <span class="stat-label"><span class="badge-rat">●</span> Total Rat Sightings</span>
-            <span class="stat-value" id="rat-count">0</span>
+        <div class="input-group">
+            <label for="layerUrl">Paste GeoJSON URL:</label>
+            <input type="text" id="layerUrl" placeholder="https://example.com/data.geojson">
+            <input type="text" id="urlName" placeholder="Layer Name (Optional)">
+            <button onclick="addLayerFromUrl()">Add from URL</button>
         </div>
-        <div class="stat-box">
-            <span class="stat-label"><span class="badge-bait">●</span> Poison Bait Stations</span>
-            <span class="stat-value" id="bait-count">0</span>
-        </div>
-        
-        <div class="divider"></div>
-        <div class="footer-note">
-            Data layer adapted from <a href="https://ratdar.taipei/" target="_blank" style="color: #0066cc; text-decoration: none;">Ratdar Taipei</a>. All visual rendering computed locally.
+
+        <hr>
+
+        <div class="input-group">
+            <label for="layerFile">Upload GeoJSON File:</label>
+            <input type="file" id="layerFile" accept=".geojson,.json">
+            <button onclick="addLayerFromFile()">Add from File</button>
         </div>
     </div>
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-            crossorigin=""></script>
-            
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Initialize Map centered on Taipei City
-        const map = L.map('map', {
-            center: [25.0478, 121.5170],
-            zoom: 13,
-            zoomControl: false // Move zoom controls for cleaner UI
-        });
+        // 1. Initialize the map centered on Taipei
+        const map = L.map('map').setView([25.0330, 121.5654], 12);
 
-        // Add zoom control to the top-right instead of top-left
-        L.control.zoom({ position: 'topright' }).addTo(map);
-
-        // 2. Add Leaflet Map Tiles (Clean Light Map style)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
+        // 2. Add the OpenStreetMap base layer
+        const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Force-refresh map layout to prevent any offset bugs
-        setTimeout(() => { map.invalidateSize(); }, 200);
+        // 3. Initialize the Layer Control to easily toggle layers on/off
+        const layerControl = L.control.layers({"Base Map": baseLayer}, {}, { collapsed: false }).addTo(map);
+        
+        let layerCounter = 1;
 
-        // ==========================================
-        // 3. MASTER DATA LIST
-        // When you extract/scrape your final JSON list from ratdar.taipei, 
-        // simply paste your entire array right here!
-        // ==========================================
-        const rawCoordinates = [
-            { "lat": 25.0462, "lng": 121.5158, "type": "rat", "desc": "Sighted near Taipei Main Station Exit M3", "time": "2026-07-15 22:15" },
-            { "lat": 25.0336, "lng": 121.5648, "type": "rat", "desc": "Active rat spotted in flowerbed near Taipei 101", "time": "2026-07-16 01:40" },
-            { "lat": 25.0415, "lng": 121.5435, "type": "bait", "desc": "Municipal black bait container deployed", "time": "2026-07-14 10:00" },
-            { "lat": 25.0521, "lng": 121.5211, "type": "rat", "desc": "Running across alleyways near Zhongshan MRT", "time": "2026-07-16 11:10" },
-            { "lat": 25.0612, "lng": 121.5185, "type": "bait", "desc": "Sewer perimeter baiting active", "time": "2026-07-13 15:30" }
-        ];
-
-        // 4. Marker Rendering & Counting Engine
-        function loadMapPoints(data) {
-            let ratCount = 0;
-            let baitCount = 0;
-
-            data.forEach(point => {
-                // Determine styling parameters based on sighting type
-                const isRat = point.type === 'rat';
-                const fillColor = isRat ? '#ff4d4f' : '#27272a';
-                const borderColor = isRat ? '#ffffff' : '#f4f4f5';
-                
-                // Track stats
-                if (isRat) ratCount++; else baitCount++;
-
-                // Render vector-accurate precise circle markers
-                const marker = L.circleMarker([point.lat, point.lng], {
-                    radius: 9,
-                    fillColor: fillColor,
-                    color: borderColor,
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.95
+        // Function to handle styling and adding GeoJSON data to the map
+        function processGeoJSON(data, name) {
+            try {
+                // Create a Leaflet GeoJSON layer
+                const geoJsonLayer = L.geoJSON(data, {
+                    // Give it a random color so distinct layers stand out
+                    style: function () {
+                        const colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4'];
+                        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                        return { color: randomColor, weight: 3, opacity: 0.8 };
+                    },
+                    // Add simple popups if the data has properties
+                    onEachFeature: function (feature, layer) {
+                        if (feature.properties) {
+                            let popupContent = '<div style="max-height:200px; overflow-y:auto;">';
+                            for (let key in feature.properties) {
+                                popupContent += `<strong>${key}:</strong> ${feature.properties[key]}<br>`;
+                            }
+                            popupContent += '</div>';
+                            layer.bindPopup(popupContent);
+                        }
+                    }
                 }).addTo(map);
 
-                // Elegant Popup Window
-                const popupContent = `
-                    <div style="font-family: sans-serif; font-size: 13px; min-width: 160px; line-height: 1.4;">
-                        <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; text-transform: uppercase; margin-bottom: 8px; color: #fff; background-color: ${fillColor};">
-                            ${point.type === 'rat' ? '⚠️ Sighting' : '💀 Active Bait'}
-                        </span>
-                        <div style="color: #1d1d1f; font-weight: 500; margin-bottom: 4px;">${point.desc}</div>
-                        <div style="color: #86868b; font-size: 11px;">Recorded: ${point.time}</div>
-                    </div>
-                `;
-                marker.bindPopup(popupContent, { offset: [0, -5] });
-            });
+                // Add to layer control switcher
+                const layerName = name || `Layer ${layerCounter++}`;
+                layerControl.addOverlay(geoJsonLayer, layerName);
 
-            // Update user panel text
-            document.getElementById('rat-count').innerText = ratCount;
-            document.getElementById('bait-count').innerText = baitCount;
+                // Automatically zoom map to fit the newly added layer data
+                const bounds = geoJsonLayer.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds);
+                }
+            } catch (error) {
+                alert("Error processing spatial data. Make sure it is valid GeoJSON format.");
+                console.error(error);
+            }
         }
 
-        // Run the builder
-        loadMapPoints(rawCoordinates);
+        // Method 1: Fetch GeoJSON via Link
+        function addLayerFromUrl() {
+            const url = document.getElementById('layerUrl').value.trim();
+            const name = document.getElementById('urlName').value.trim();
+
+            if (!url) {
+                alert("Please enter a valid URL.");
+                return;
+            }
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error("Network response was not ok");
+                    return response.json();
+                })
+                .then(data => {
+                    processGeoJSON(data, name);
+                    document.getElementById('layerUrl').value = ''; // clear input
+                    document.getElementById('urlName').value = '';
+                })
+                .catch(err => {
+                    alert("Failed to fetch data. Note: The external server must support CORS (Cross-Origin Resource Sharing).");
+                    console.error(err);
+                });
+        }
+
+        // Method 2: Read GeoJSON via Local File
+        function addLayerFromFile() {
+            const fileInput = document.getElementById('layerFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    processGeoJSON(data, file.name.replace(/\.[^/.]+$/, "")); // use filename without extension
+                    fileInput.value = ''; // clear input
+                } catch (err) {
+                    alert("Invalid JSON file format.");
+                }
+            };
+            reader.readAsText(file);
+        }
     </script>
 </body>
 </html>

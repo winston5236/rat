@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rat Radar 延伸應用地圖</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="info-panel">
+        <h3>台北鼠蹤與毒餌地圖</h3>
+        <p>此地圖串接自見鼠地圖資料來源。</p>
+        <div id="stats">載入中...</div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. 初始化地圖，中心點設在台北市
+        const map = L.map('map').setView([25.0478, 121.5170], 13);
+
+        // 2. 載入 OpenStreetMap 地圖磚
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. 模擬從 API 抓取資料 (若未來拿到 API 網址，請替換此處的 URL)
+        // 假設資料格式包含：lat, lng, type('rat' 或 'bait'), description, time
+        const mockApiUrl = 'https://api.ratdar.taipei/v1/reports'; 
+
+        async function fetchRatData() {
+            try {
+                // 實際開發時，使用 fetch(mockApiUrl) 取得資料
+                // 這裡先用模擬資料（Mock Data）示範結構：
+                const data = [
+                    { lat: 25.0462, lng: 121.5158, type: 'rat', desc: '台北車站館前路目擊肥大黑鼠', time: '2026-07-15 19:30' },
+                    { lat: 25.0336, lng: 121.5648, type: 'rat', desc: '台北101周邊花圃老鼠亂竄', time: '2026-07-16 08:15' },
+                    { lat: 25.0415, lng: 121.5435, type: 'bait', desc: '東區地下街出口發現毒餌', time: '2026-07-14 15:00' }
+                ];
+
+                renderMarkers(data);
+                document.getElementById('stats').innerHTML = `目前偵測到 ${data.length} 個通報點。`;
+            } catch (error) {
+                console.error('無法取得資料:', error);
+                document.getElementById('stats').innerHTML = '資料載入失敗';
+            }
+        }
+
+        // 4. 將資料渲染至地圖上
+        function renderMarkers(points) {
+            points.forEach(point => {
+                // 根據類型選擇不同的標記顏色 (紅色代表老鼠，黑色/骷髏代表毒餌)
+                const color = point.type === 'rat' ? 'red' : 'black';
+                const marker = L.circleMarker([point.lat, point.lng], {
+                    radius: 8,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+
+                // 綁定彈出視窗
+                const popupContent = `
+                    <strong>${point.type === 'rat' ? '⚠️ 鼠隻目擊' : '💀 毒餌分佈'}</strong><br>
+                    時間: ${point.time}<br>
+                    描述: ${point.desc}
+                `;
+                marker.bindPopup(popupContent);
+            });
+        }
+
+        // 執行載入
+        fetchRatData();
+    </script>
+</body>
+</html>

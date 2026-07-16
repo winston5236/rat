@@ -1,94 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rat Radar View</title>
-  <style>
-    /* 1. Reset default margins & paddings to prevent scrollbars */
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
+// 1. Initialize your map centered on Taipei
+var map = L.map('map').setView([25.033, 121.5654], 13);
 
-    /* 2. Full-window map container */
-    .map-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      border: none;
-      z-index: 1; /* Sits behind interactive controls */
-      background-color: #f0f0f0; /* Fallback background */
-      transition: opacity 0.3s ease;
-    }
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 
-    /* Hidden state for the map toggling */
-    .map-container.hidden {
-      display: none;
-    }
+// 2. Paste the raw data points you found here (make sure to close the brackets!)
+var ratHeatPoints = [
+    [25.0231669, 121.4662814, 0.6],
+    [24.9883558, 121.5007182, 0.6],
+    [24.9397596, 121.3727385, 0.6],
+    // ... paste all other coordinates here ...
+    [25.01045, 121.4834255, 0.6] // Fixed closed bracket example
+];
 
-    /* 3. Float the toggle button over the top-left of the viewport */
-    .toggle-button {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      z-index: 10; /* Guarantees the button is clickable over the map */
-      padding: 10px 16px;
-      background-color: #ffffff;
-      color: #333333;
-      border: 1px solid #cccccc;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: bold;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      transition: background 0.2s, transform 0.1s;
-    }
-
-    .toggle-button:hover {
-      background-color: #f5f5f5;
-    }
-
-    .toggle-button:active {
-      transform: scale(0.98);
-    }
-  </style>
-</head>
-<body>
-
-  <button id="toggleBtn" class="toggle-button">Toggle Rat Radar View</button>
-
-  <iframe 
-    id="mapFrame" 
-    class="map-container" 
-    src="https://rat-self.vercel.app" 
-    allow="geolocation">
-  </iframe>
-
-  <script>
-    const toggleBtn = document.getElementById('toggleBtn');
-    const mapFrame = document.getElementById('mapFrame');
-
-    // Simple toggle logic to show/hide the full window map
-    toggleBtn.addEventListener('click', () => {
-      mapFrame.classList.toggle('hidden');
-      
-      // Visual feedback on the button state
-      if (mapFrame.classList.contains('hidden')) {
-        toggleBtn.textContent = 'Show Rat Radar View';
-        toggleBtn.style.backgroundColor = '#eaeaea';
-      } else {
-        toggleBtn.textContent = 'Toggle Rat Radar View';
-        toggleBtn.style.backgroundColor = '#ffffff';
-      }
-    });
-  </script>
-
-</body>
-</html>
+// 3. Render the heat layer onto your map
+var heatLayer = L.heatLayer(ratHeatPoints, {
+    radius: 25, 
+    blur: 15, 
+    maxZoom: 17
+}).addTo(map);

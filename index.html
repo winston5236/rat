@@ -1,16 +1,22 @@
-<button onclick="toggleRatRadar()">Toggle Rat Radar View</button>
+// 1. Initialize your map centered on Taipei
+var map = L.map('map').setView([25.033, 121.5654], 13);
 
-<div id="radarContainer" style="display:none; position:fixed; right:20px; bottom:20px; width:400px; height:500px; z-index:9999; border: 2px solid #ccc; border-radius: 8px; overflow:hidden; background:white;">
-    <iframe src="https://ratdar.taipei/" style="width:100%; height:100%; border:none;"></iframe>
-</div>
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
 
-<script>
-function toggleRatRadar() {
-    var container = document.getElementById("radarContainer");
-    if (container.style.display === "none") {
-        container.style.display = "block";
-    } else {
-        container.style.display = "none";
-    }
-}
-</script>
+// 2. Paste the raw data points you found here (make sure to close the brackets!)
+var ratHeatPoints = [
+    [25.0231669, 121.4662814, 0.6],
+    [24.9883558, 121.5007182, 0.6],
+    [24.9397596, 121.3727385, 0.6],
+    // ... paste all other coordinates here ...
+    [25.01045, 121.4834255, 0.6] // Fixed closed bracket example
+];
+
+// 3. Render the heat layer onto your map
+var heatLayer = L.heatLayer(ratHeatPoints, {
+    radius: 25, 
+    blur: 15, 
+    maxZoom: 17
+}).addTo(map);
